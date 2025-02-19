@@ -1,35 +1,21 @@
-import { OpenAI } from "openai";
-import * as dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-dotenv.config();
-
-export const requestAiResponse = async (content: string) => {
-  const client = new OpenAI({
-    baseURL: "https://router.huggingface.co/fireworks-ai",
-    apiKey: process.env.HUGGINGFACE_WRITE_TOKEN,
-  });
-
-  let out = "";
-
-  const stream = await client.chat.completions.create({
-    model: "deepseek-ai/DeepSeek-R1",
-    messages: [
-      {
-        role: "user",
-        content: content,
-      },
-    ],
-    max_tokens: 500,
-    stream: true,
-  });
-
-  for await (const chunk of stream) {
-    if (chunk.choices && chunk.choices.length > 0) {
-      const newContent = chunk.choices[0].delta.content;
-      out += newContent;
-      console.log(newContent);
-    }
-
-    return out;
+export async function requestAiGeneration(prompt: string): Promise<string> {
+  if (!process.env.GOOGLE_AI_STUDIO_KEY) {
+    console.error("Missing GOOGLE_AI_STUDIO_KEY");
+    throw new Error("Missing GOOGLE_AI_STUDIO_KEY in environment variables.");
   }
-};
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_STUDIO_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash-lite-preview-02-05",
+    });
+
+    const result = await model.generateContent(prompt);
+    return await result.response.text();
+  } catch (error) {
+    console.error("AI Generation Error:", error);
+    throw new Error("Failed to generate AI response.");
+  }
+}
